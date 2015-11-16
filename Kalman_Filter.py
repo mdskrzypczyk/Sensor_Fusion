@@ -15,9 +15,9 @@ class Simulated_Kalman_Filter:
         self.measured_rate = np.gradient(self.test_signal) + drift*self.t + np.random.normal(0,0.1,num_samples)
 
         # Initialize internal state representation
-        self.K = np.matrix([1, 1])
+        self.K = np.matrix([[1.0], [1.0]])
         self.H = np.matrix([1, 0])
-        self.P = np.matrix([[0, 0], [0, 0]])
+        self.P = np.matrix([[0.0, 0.0], [0.0, 0.0]])
         self.Q = Q
         self.R = R
         self.drift = drift
@@ -49,10 +49,19 @@ class Simulated_Kalman_Filter:
             self.P[1, 0] -= self.dt*self.P[1, 1]
             self.P[1, 1] += self.drift*self.dt
 
-            self.K = (self.P*self.H.transpose())*inv(self.H*self.P*self.H.transpose() + self.R)
+            K1 = float(self.P[0, 0]) / (self.P[0, 0]+self.R)
+            K2 = float(self.P[1, 0]) / (self.P[0, 0]+self.R)
+            self.K[0, 0] = K1
+            self.K[1, 0] = K2
+
             angle[i] = angle[i] + self.K[0, 0]*(self.measured_signal[i] - angle[i])
             bias.append(bias[i-1] + self.K[1, 0]*(self.measured_signal[i] - angle[i]))
-            self.P = (1 - self.K[0, 0] + self.K[1, 0])*self.P
+
+            p_update = (1-self.K[0, 0] + self.K[1, 0])
+            self.P[0, 0] = p_update*self.P[0, 0]
+            self.P[0, 1] = p_update*self.P[0, 1]
+            self.P[1, 0] = p_update*self.P[1, 0]
+            self.P[1, 1] = p_update*self.P[1, 1]
 
             self.update_graph(i*self.dt, angle[i])
 
